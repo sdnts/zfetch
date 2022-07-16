@@ -12,6 +12,8 @@ pub fn build(b: *Builder) void {
 
     if (builtin.target.os.tag == .macos) {
         exe.linkFramework("ApplicationServices");
+        exe.linkFramework("IOKit");
+        exe.linkFramework("CoreFoundation");
     }
     exe.install();
 

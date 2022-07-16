@@ -4,9 +4,12 @@ const c = @cImport({
     @cInclude("sys/sysctl.h");
     @cInclude("sys/types.h");
     @cInclude("ApplicationServices/ApplicationServices.h");
+    @cInclude("IOKit/IOKitLib.h");
+    @cInclude("CoreFoundation/CFString.h");
 });
 
 const Allocator = std.mem.Allocator;
+const ArrayList = std.ArrayListUnmanaged;
 const HOST_NAME_MAX = std.os.HOST_NAME_MAX;
 
 const isMacOS = builtin.target.os.tag == .macos;
@@ -91,27 +94,53 @@ pub const Impl = struct {
     }
 
     /// Returns the make of your GPU, or an error
-    pub fn gpu(allocator: Allocator) ![]const u8 {
+    pub fn gpu(allocator: Allocator) GPUError!ArrayList([]const u8) {
+        _ = allocator;
+
         if (isMacOS) {
-            const argv = [_][]const u8{ "system_profiler", "SPDisplaysDataType" };
-            var cp = try std.ChildProcess.exec(.{ .allocator = allocator, .argv = argv[0..] });
-            var iter = std.mem.split(u8, cp.stdout, "\n");
+            var value = try ArrayList([]const u8).initCapacity(allocator, 2);
 
-            // Output looks like:
-            // ```
-            // Graphics/Displays:
-            //
-            //      <GPUName>:
-            //
-            //          Chipset Model: ...
-            //          ...
-            // ```
-            //
-            // Name of the GPU will be on the third line.
+            // Super helpful reading: https://www.starcoder.com/wordpress/2011/10/using-iokit-to-detect-graphics-hardware/
+            var matchDictionary = c.IOServiceMatching("IOPCIDevice");
+            var serviceObjectIter: c.io_iterator_t = undefined;
+            defer _ = c.IOObjectRelease(serviceObjectIter);
 
-            _ = iter.next().?;
-            _ = iter.next().?;
-            var value = std.mem.trim(u8, iter.next().?, "\t: ");
+            // Create an iterator for PCI devices
+            var result = c.IOServiceGetMatchingServices(c.kIOMasterPortDefault, matchDictionary, &serviceObjectIter);
+            if (result != c.kIOReturnSuccess) return GPUError.IOKitError;
+
+            // Iterate through PCI devices
+            // while (c.IOIteratorNext(serviceObjectIter)) |serviceObject| {
+            while (true) {
+                var serviceObject = c.IOIteratorNext(serviceObjectIter);
+                defer _ = c.IOObjectRelease(serviceObject);
+
+                if (serviceObject == 0) break;
+
+                var serviceDictionary: c.CFMutableDictionaryRef = undefined;
+                defer _ = c.CFRelease(serviceDictionary);
+
+                // Create a CFDictionary from the serviceObject
+                result = c.IORegistryEntryCreateCFProperties(serviceObject, &serviceDictionary, c.kCFAllocatorDefault, c.kNilOptions);
+                if (result != c.kIOReturnSuccess) return GPUError.IOKitError;
+
+                // If this is a GPU listing, it will have a "model" key that points to a CFDataRef
+                var cfStringKey = c.CFStringCreateWithCString(c.kCFAllocatorDefault, "model", 1);
+                defer c.CFRelease(cfStringKey);
+
+                var model = @ptrCast(c.CFDataRef, c.CFDictionaryGetValue(serviceDictionary, cfStringKey));
+                if (model == null) continue;
+
+                if (c.CFGetTypeID(model) == c.CFDataGetTypeID()) {
+                    var size = c.CFDataGetLength(model);
+                    var buf = try allocator.alloc(u8, @intCast(usize, size));
+
+                    c.CFDataGetBytes(model, c.CFRangeMake(0, size), @ptrCast([*c]u8, buf));
+                    try value.append(allocator, buf);
+                } else {
+                    // Means Our ptrCast was wrong up above
+                }
+            }
 
             return value;
         }
@@ -347,7 +376,7 @@ const SysctlError = error{SysctlError};
 pub const ClockspeedError = SysctlError;
 pub const CoresError = SysctlError;
 pub const CPUError = AllocatorError || SysctlError;
-pub const GPUError = AllocatorError || error{};
+pub const GPUError = AllocatorError || error{IOKitError};
 pub const HostnameError = AllocatorError || std.os.GetHostNameError;
 pub const KernelError = AllocatorError || SysctlError;
 pub const OSError = AllocatorError || SysctlError;

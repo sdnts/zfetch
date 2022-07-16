@@ -21,8 +21,10 @@ pub fn print() !void {
     const cpu = try Impl.cpu(allocator);
     try stdout.print("CPU: {s}\n", .{cpu});
 
-    const gpu = try Impl.gpu(allocator);
-    try stdout.print("GPU: {s}\n", .{gpu});
+    const gpus = try Impl.gpu(allocator);
+    for (gpus.items) |gpu| {
+        try stdout.print("GPU: {s}\n", .{gpu});
+    }
 
     const hostname = try Impl.hostname();
     try stdout.print("Hostname: {s}\n", .{hostname});
