@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const impl = @import("impl.zig");
 const fmt = @import("fmt.zig");
+const art = @import("art.zig");
 
 const Decorated = fmt.Decorated;
 
@@ -11,6 +12,8 @@ pub fn main() !void {
     defer arena.deinit();
 
     const stdout = std.io.getStdOut().writer();
+
+    try Decorated.init().println(stdout, art.latte, .{});
 
     var cores = try impl.cores(allocator);
     try Decorated.init().bold().print(stdout, "Cores: ", .{});
@@ -72,6 +75,7 @@ pub fn main() !void {
     try Decorated.init().bold().print(stdout, "User: ", .{});
     try Decorated.init().println(stdout, "{s}", .{user});
 
+    try stdout.print("\n", .{});
     const color_block = "   ";
     var i: u8 = 0;
     while (i < 8) : (i += 1)
