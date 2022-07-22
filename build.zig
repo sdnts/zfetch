@@ -8,12 +8,10 @@ pub fn build(b: *Builder) void {
     const exe = b.addExecutable("zfetch", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
-    exe.linkLibC();
 
     if (builtin.target.os.tag == .macos) {
         exe.linkFramework("ApplicationServices");
         exe.linkFramework("IOKit");
-        exe.linkFramework("CoreFoundation");
     }
     exe.install();
 

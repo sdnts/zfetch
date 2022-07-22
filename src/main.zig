@@ -1,63 +1,59 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Impl = @import("impl.zig").Impl;
+const impl = @import("impl.zig");
 
 pub fn main() !void {
-    print() catch {
-        std.process.exit(1);
-    };
-}
-
-pub fn print() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.raw_c_allocator);
-    defer arena.deinit();
     var allocator = arena.allocator();
+    defer arena.deinit();
 
     const stdout = std.io.getStdOut().writer();
 
-    const cores = try Impl.cores();
+    const cores = try impl.cores(allocator);
     try stdout.print("Cores: {d}\n", .{cores});
 
-    const cpu = try Impl.cpu(allocator);
+    const cpu = try impl.cpu(allocator);
     try stdout.print("CPU: {s}\n", .{cpu});
 
-    const gpus = try Impl.gpu(allocator);
-    for (gpus.items) |gpu| {
+    const gpus = try impl.gpu(allocator);
+    if (gpus.items.len == 0) {
+        try stdout.print("GPU: Integrated\n", .{});
+    } else for (gpus.items) |gpu| {
         try stdout.print("GPU: {s}\n", .{gpu});
     }
 
-    const hostname = try Impl.hostname();
+    const hostname = try impl.hostname();
     try stdout.print("Hostname: {s}\n", .{hostname});
 
-    const kernel = try Impl.kernel(allocator);
+    const kernel = try impl.kernel(allocator);
     try stdout.print("Kernel: {s}\n", .{kernel});
 
-    const machine = try Impl.machine(allocator);
+    const machine = try impl.machine(allocator);
     try stdout.print("Machine: {s}\n", .{machine});
 
-    const os = try Impl.os(allocator);
+    const os = try impl.os(allocator);
     try stdout.print("OS: {s}\n", .{os});
 
-    const ram = try Impl.ram();
+    const ram = try impl.ram(allocator);
     try stdout.print("RAM: {d}GB\n", .{ram / (1024 * 1024 * 1024)});
 
-    const resolution = try Impl.resolution();
+    const resolution = try impl.resolution();
     try stdout.print("Resolution: {d}x{d}\n", .{ resolution.width, resolution.height });
 
-    const shell = try Impl.shell();
+    const shell = try impl.shell();
     if (shell) |s| {
         try stdout.print("Shell: {s}\n", .{s});
     }
 
-    const term = try Impl.term();
+    const term = try impl.term();
     if (term) |t| {
         try stdout.print("Term: {s}\n", .{t});
     }
 
-    const threads = try Impl.threads();
+    const threads = try impl.threads(allocator);
     try stdout.print("Threads: {d}\n", .{threads});
 
-    const uptime = @intToFloat(f64, try Impl.uptime());
+    const uptime = @intToFloat(f64, try impl.uptime(allocator));
     const DAYS_DIVISOR = 60 * 60 * 24;
     const HOURS_DIVISOR = 60 * 60;
     const MINUTES_DIVISOR = 60;
