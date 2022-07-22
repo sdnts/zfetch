@@ -186,23 +186,28 @@ pub fn resolution() !Resolution {
 }
 
 /// Returns the name of your shell, or an error
-pub fn shell() !?[]const u8 {
+pub fn shell() ![]const u8 {
     if (isMacOS or isLinux) {
-        if (std.os.getenv("SHELL")) |s| {
-            var iter = std.mem.splitBackwards(u8, s, "/");
-            return iter.next();
-        }
+        var value = std.os.getenv("SHELL");
+        if (value == null) return error.MissingEnvVar;
 
-        return null;
+        var iter = std.mem.splitBackwards(u8, value.?, "/");
+        value = iter.next();
+        if (value == null) return error.UnexpectedEnvVar;
+
+        return value.?;
     }
 
     @compileError("impl.shell is not implemented for this OS");
 }
 
 /// Returns the name of your terminal, or an error
-pub fn term() !?[]const u8 {
+pub fn term() ![]const u8 {
     if (isMacOS or isLinux) {
-        return std.os.getenv("TERM");
+        const value = std.os.getenv("TERM");
+        if (value == null) return error.MissingEnvVar;
+
+        return value.?;
     }
 
     @compileError("impl.term is not implemented for this OS");
@@ -233,4 +238,16 @@ pub fn uptime(allocator: Allocator) !usize {
     }
 
     @compileError("impl.uptime is not implemented for this OS");
+}
+
+/// Returns the currently logged in user's account name, or an error
+pub fn user() ![]const u8 {
+    if (isMacOS or isLinux) {
+        const value = std.os.getenv("USER");
+        if (value == null) return error.MissingEnvVar;
+
+        return value.?;
+    }
+
+    @compileError("impl.user is not implemented for this OS");
 }
