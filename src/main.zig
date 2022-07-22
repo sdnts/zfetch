@@ -71,4 +71,13 @@ pub fn main() !void {
     const user = try impl.user();
     try Decorated.init().bold().print(stdout, "User: ", .{});
     try Decorated.init().println(stdout, "{s}", .{user});
+
+    const color_block = "   ";
+    var i: u8 = 0;
+    while (i < 8) : (i += 1)
+        try Decorated.init().background(.{ .number = i }).print(stdout, color_block, .{});
+    try stdout.print("\n", .{});
+    while (i < 16) : (i += 1)
+        try Decorated.init().background(.{ .number = i }).print(stdout, color_block, .{});
+    try stdout.print("\n", .{});
 }

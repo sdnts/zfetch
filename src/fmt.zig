@@ -7,8 +7,10 @@ const Writer = std.fs.File.Writer;
 
 const Style = enum(u8) { Regular, Bold };
 
-// While technically we can support full 24-bit colors (RGB) because most modern terminals will be able to render them, there's really no point, the standard 256 colors are more than enough
-const Color = enum(u8) { Black, Red, Green, Blue, Magenta, Cyan, White };
+const Color = union(enum) {
+    name: enum(u8) { Black, Red, Green, Blue, Yellow, Magenta, Cyan, White },
+    number: u8,
+};
 
 pub const Decorated = struct {
     const Self = @This();
@@ -48,11 +50,19 @@ pub const Decorated = struct {
         }
 
         if (self.fg) |color| {
-            try writer.print("\x1B[38;5;{d}m", .{@enumToInt(color)});
+            const val = switch (color) {
+                .name => @enumToInt(color.name),
+                .number => color.number,
+            };
+            try writer.print("\x1B[38;5;{d}m", .{val});
         }
 
         if (self.bg) |color| {
-            try writer.print("\x1B[48;5;{d}m", .{@enumToInt(color)});
+            const val = switch (color) {
+                .name => @enumToInt(color.name),
+                .number => color.number,
+            };
+            try writer.print("\x1B[48;5;{d}m", .{val});
         }
 
         try writer.print(format, args);
