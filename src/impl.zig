@@ -17,6 +17,7 @@ const Resolution = struct {
     width: u32,
     height: u32,
 };
+const Uptime = struct { days: u64, hours: u64, minutes: u64, seconds: u64 };
 
 // Information you can show is implemented on a per-platform basis here. There is unfortunately no cross-platform way to get system information,
 // so you'll regularly see branches based on supported operating systems. I'm leaving a few general notes here that might be useful if you're tweaking this,
@@ -226,18 +227,36 @@ pub fn threads(allocator: Allocator) !usize {
 }
 
 /// Returns the time (in seconds) since your system was shut down / restarted, or an error
-pub fn uptime(allocator: Allocator) !usize {
-    if (isMacOS) {
-        comptime var mib = [2]c_int{ c.CTL_KERN, c.KERN_BOOTTIME };
-        // struct layout is dictated by libc
-        // Reference: ziglang/zig lib/libc/include/any-macos-any/sys/_types/_timeval64.h
-        const TimeVal = extern struct { secs: u64, usecs: u64 };
+pub fn uptime(allocator: Allocator) !Uptime {
+    const value_ms = blk: {
+        if (isMacOS) {
+            comptime var mib = [2]c_int{ c.CTL_KERN, c.KERN_BOOTTIME };
+            // struct layout is dictated by libc
+            // Reference: ziglang/zig lib/libc/include/any-macos-any/sys/_types/_timeval64.h
+            const TimeVal = extern struct { secs: u64, usecs: u64 };
 
-        var value = try darwin.sysctl(allocator, TimeVal, mib[0..]);
-        return @divFloor(@intCast(u64, std.time.milliTimestamp()), 1000) - value.secs;
-    }
+            var value = try darwin.sysctl(allocator, TimeVal, mib[0..]);
+            break :blk @divFloor(@intCast(u64, std.time.milliTimestamp()), 1000) - value.secs;
+        }
 
-    @compileError("impl.uptime is not implemented for this OS");
+        @compileError("impl.uptime is not implemented for this OS");
+    };
+
+    const DAYS_DIVISOR = 60 * 60 * 24;
+    const HOURS_DIVISOR = 60 * 60;
+    const MINUTES_DIVISOR = 60;
+    const SECONDS_DIVISOR = 1;
+
+    const days_abs = @divFloor(value_ms, DAYS_DIVISOR);
+    const hours_abs = @divFloor(value_ms, HOURS_DIVISOR);
+    const minutes_abs = @divFloor(value_ms, MINUTES_DIVISOR);
+
+    return Uptime{
+        .days = days_abs,
+        .hours = @divFloor(value_ms - days_abs * DAYS_DIVISOR, HOURS_DIVISOR),
+        .minutes = @divFloor(value_ms - hours_abs * HOURS_DIVISOR, MINUTES_DIVISOR),
+        .seconds = @divFloor(value_ms - minutes_abs * MINUTES_DIVISOR, SECONDS_DIVISOR),
+    };
 }
 
 /// Returns the currently logged in user's account name, or an error

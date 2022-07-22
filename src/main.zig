@@ -12,7 +12,6 @@ pub fn main() !void {
 
     const DecoratedString = fmt.Decorated([]const u8);
     const DecoratedUsize = fmt.Decorated(usize);
-    const DecoratedFloat = fmt.Decorated(f64);
 
     var cores = try impl.cores(allocator);
     try DecoratedString.init("Cores: ").bold().print(stdout);
@@ -65,28 +64,15 @@ pub fn main() !void {
     try DecoratedString.init("Threads: ").bold().print(stdout);
     try DecoratedUsize.init(threads).println(stdout);
 
-    const uptime = @intToFloat(f64, try impl.uptime(allocator));
-    const DAYS_DIVISOR = 60 * 60 * 24;
-    const HOURS_DIVISOR = 60 * 60;
-    const MINUTES_DIVISOR = 60;
-    const SECONDS_DIVISOR = 1;
-
-    const days_abs = @divFloor(uptime, DAYS_DIVISOR);
-    const hours_abs = @divFloor(uptime, HOURS_DIVISOR);
-    const minutes_abs = @divFloor(uptime, MINUTES_DIVISOR);
-
-    const days = days_abs;
-    const hours = @divFloor(uptime - days_abs * DAYS_DIVISOR, HOURS_DIVISOR);
-    const minutes = @divFloor(uptime - hours_abs * HOURS_DIVISOR, MINUTES_DIVISOR);
-    const seconds = @divFloor(uptime - minutes_abs * MINUTES_DIVISOR, SECONDS_DIVISOR);
+    const uptime = try impl.uptime(allocator);
     try DecoratedString.init("Uptime: ").bold().print(stdout);
-    try DecoratedFloat.init(days).print(stdout);
+    try DecoratedUsize.init(uptime.days).print(stdout);
     try DecoratedString.init("d ").print(stdout);
-    try DecoratedFloat.init(hours).print(stdout);
+    try DecoratedUsize.init(uptime.hours).print(stdout);
     try DecoratedString.init("h ").print(stdout);
-    try DecoratedFloat.init(minutes).print(stdout);
+    try DecoratedUsize.init(uptime.minutes).print(stdout);
     try DecoratedString.init("m ").print(stdout);
-    try DecoratedFloat.init(seconds).print(stdout);
+    try DecoratedUsize.init(uptime.seconds).print(stdout);
     try DecoratedString.init("s").println(stdout);
 
     const user = try impl.user();
