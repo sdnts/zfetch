@@ -5,11 +5,11 @@ const c = @cImport({
     @cInclude("ApplicationServices/ApplicationServices.h");
     @cInclude("IOKit/IOKitLib.h");
 });
-const darwin = @import("./impl/darwin.zig");
+const darwin = @import("./darwin.zig");
 
-const isMacOS = builtin.target.os.tag == .macos;
-const isLinux = builtin.target.os.tag == .linux;
-const isWindows = builtin.target.os.tag == .windows;
+const is_macos = builtin.target.os.tag == .macos;
+const is_linux = builtin.target.os.tag == .linux;
+const is_windows = builtin.target.os.tag == .windows;
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
@@ -35,7 +35,7 @@ const Uptime = struct { days: u64, hours: u64, minutes: u64, seconds: u64 };
 
 /// Returns the number of physical CPUs available, or an error
 pub fn cores(allocator: Allocator) !usize {
-    if (isMacOS) {
+    if (is_macos) {
         comptime var mib = [_]c_int{ c.CTL_HW, c.HW_NCPU };
         // TODO: Find out why requesting a `usize` ValueType (instead of `c_int`) messes things up
         const value = try darwin.sysctl(allocator, c_int, mib[0..]);
@@ -47,7 +47,7 @@ pub fn cores(allocator: Allocator) !usize {
 
 /// Returns the make of your CPU, or an error
 pub fn cpu(allocator: Allocator) ![]u8 {
-    if (isMacOS) {
+    if (is_macos) {
         // This has a system-dependent MIB, so we use `sysctlbyname`
         return darwin.sysctlbyname(allocator, []u8, "machdep.cpu.brand_string");
     }
@@ -59,7 +59,7 @@ pub fn cpu(allocator: Allocator) ![]u8 {
 pub fn gpu(allocator: Allocator) !ArrayList([]const u8) {
     _ = allocator;
 
-    if (isMacOS) {
+    if (is_macos) {
         var value = try ArrayList([]const u8).initCapacity(allocator, 2);
 
         // Super helpful reading: https://www.starcoder.com/wordpress/2011/10/using-iokit-to-detect-graphics-hardware/
@@ -118,7 +118,7 @@ pub fn hostname() ![std.os.HOST_NAME_MAX]u8 {
 
 // Returns a string with the name and version of the kernel, or an error
 pub fn kernel(allocator: Allocator) ![]u8 {
-    if (isMacOS) {
+    if (is_macos) {
         // This has a system-dependent MIB, so we use `sysctlbyname`
         const name = try darwin.sysctlbyname(allocator, []u8, "kern.ostype");
         const version = try darwin.sysctlbyname(allocator, []u8, "kern.osrelease");
@@ -130,7 +130,7 @@ pub fn kernel(allocator: Allocator) ![]u8 {
 
 /// Returns the model number of your device (only applicable for laptops really), or an error
 pub fn machine(allocator: Allocator) ![]u8 {
-    if (isMacOS) {
+    if (is_macos) {
         comptime var mib = [_]c_int{ c.CTL_HW, c.HW_PRODUCT };
         return darwin.sysctl(allocator, []u8, mib[0..]);
     }
@@ -140,7 +140,7 @@ pub fn machine(allocator: Allocator) ![]u8 {
 
 /// Returns a string with your OS's name and version, or an error
 pub fn os(allocator: Allocator) ![]u8 {
-    if (isMacOS) {
+    if (is_macos) {
         // COMPATIBILITY:
         // The following only works for macOS 10.13.4 (High Sierra) and up.
         // The sysctl entry to get the macOS version is `kern.osproductversion`, which has two issues:
@@ -161,7 +161,7 @@ pub fn os(allocator: Allocator) ![]u8 {
 
 /// Returns the amount of RAM in your system (in bytes) or an error
 pub fn ram(allocator: Allocator) !usize {
-    if (isMacOS) {
+    if (is_macos) {
         comptime var mib = [_]c_int{ c.CTL_HW, c.HW_MEMSIZE };
         return darwin.sysctl(allocator, usize, mib[0..]);
     }
@@ -171,7 +171,7 @@ pub fn ram(allocator: Allocator) !usize {
 
 /// Returns the primary display's resolution, or an error
 pub fn resolution() !Resolution {
-    if (isMacOS) {
+    if (is_macos) {
         // Big help:
         // https://github.com/jakehilborn/displayplacer/blob/master/displayplacer.c#L5
         // https://github.com/jakehilborn/displayplacer/blob/master/displayplacer.c#L255
@@ -188,7 +188,7 @@ pub fn resolution() !Resolution {
 
 /// Returns the name of your shell, or an error
 pub fn shell() ![]const u8 {
-    if (isMacOS or isLinux) {
+    if (is_macos or is_linux) {
         var value = std.os.getenv("SHELL");
         if (value == null) return error.MissingEnvVar;
 
@@ -204,7 +204,7 @@ pub fn shell() ![]const u8 {
 
 /// Returns the name of your terminal, or an error
 pub fn term() ![]const u8 {
-    if (isMacOS or isLinux) {
+    if (is_macos or is_linux) {
         const value = std.os.getenv("TERM");
         if (value == null) return error.MissingEnvVar;
 
@@ -216,7 +216,7 @@ pub fn term() ![]const u8 {
 
 /// Returns the number of total number of threads available, across all cores, or an error
 pub fn threads(allocator: Allocator) !usize {
-    if (isMacOS) {
+    if (is_macos) {
         // This has a system-dependent MIB, so we use `sysctlbyname`
         // TODO: Find out why requesting a `usize` ValueType (instead of `c_int`) messes things up
         const value = try darwin.sysctlbyname(allocator, c_int, "machdep.cpu.thread_count");
@@ -229,7 +229,7 @@ pub fn threads(allocator: Allocator) !usize {
 /// Returns the time (in seconds) since your system was shut down / restarted, or an error
 pub fn uptime(allocator: Allocator) !Uptime {
     const value_ms = blk: {
-        if (isMacOS) {
+        if (is_macos) {
             comptime var mib = [2]c_int{ c.CTL_KERN, c.KERN_BOOTTIME };
             // struct layout is dictated by libc
             // Reference: ziglang/zig lib/libc/include/any-macos-any/sys/_types/_timeval64.h
@@ -261,7 +261,7 @@ pub fn uptime(allocator: Allocator) !Uptime {
 
 /// Returns the currently logged in user's account name, or an error
 pub fn user() ![]const u8 {
-    if (isMacOS or isLinux) {
+    if (is_macos or is_linux) {
         const value = std.os.getenv("USER");
         if (value == null) return error.MissingEnvVar;
 
