@@ -1,15 +1,16 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const impl = @import("impl.zig");
-const fmt = @import("fmt.zig");
 const art = @import("art.zig");
-
-const Decorated = fmt.Decorated;
+const Decorated = @import("fmt.zig").Decorated;
+const HStack = @import("hstack.zig");
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.raw_c_allocator);
     var allocator = arena.allocator();
     defer arena.deinit();
+
+    HStack.init(2).body(.{ art.latte, art.cloudflare });
 
     const stdout = std.io.getStdOut().writer();
 
