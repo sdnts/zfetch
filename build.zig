@@ -9,6 +9,8 @@ pub fn build(b: *Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
 
+    exe.addPackagePath("decor", "lib/zig-decor/decor.zig");
+
     if (builtin.target.os.tag == .macos) {
         exe.linkFramework("ApplicationServices");
         exe.linkFramework("IOKit");

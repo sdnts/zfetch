@@ -1,5 +1,9 @@
 const std = @import("std");
 
+const Allocator = std.mem.Allocator;
+const AllocatorError = std.mem.Allocator.Error;
+const Writer = std.fs.File.Writer;
+const WriteError = std.fs.File.WriteError;
 const assert = std.debug.assert;
 
 /// FmtIterator is supposed to define an interface that other formatting iterators must conform to.
@@ -28,13 +32,12 @@ ptr: *anyopaque,
 /// Locations of the actual implementations of methods
 vtable: *const VTable,
 
+const NextFnError = AllocatorError || WriteError;
 /// Generic that constructs the type of the `.next()` method, based on the host's type
 fn NextFn(comptime T: type) type {
-    return fn (self: T) ?[]u8;
+    return fn (self: T, allocator: Allocator, writer: Writer) NextFnError!?void;
 }
 
-/// The VTable holds pointers to the methods
-/// Type of the `self` argument of all methods must be type-erased here as well so we can store methods on structs of any type.
 const VTable = struct { next: NextFn(*anyopaque) };
 
 pub fn init(pointer: anytype, comptime nextFn: NextFn(@TypeOf(pointer))) Self {
@@ -44,12 +47,14 @@ pub fn init(pointer: anytype, comptime nextFn: NextFn(@TypeOf(pointer))) Self {
     assert(ptr_info == .Pointer); // Must be a pointer
     assert(ptr_info.Pointer.size == .One); // Must be a single-item pointer
 
+    const alignment = ptr_info.Pointer.alignment;
+
     // Construct the VTable using closure values. This is the only place we have actual memory addresses & types of things
     const Tmp = struct {
         const vtable = VTable{ .next = nextImpl };
 
-        fn nextImpl(self: *anyopaque) ?[]u8 {
-            return @call(.{}, nextFn, .{@ptrCast(Ptr, self)});
+        fn nextImpl(self: *anyopaque, allocator: Allocator, writer: Writer) !?void {
+            return @call(.{}, nextFn, .{ @ptrCast(Ptr, @alignCast(alignment, self)), allocator, writer });
         }
     };
 
@@ -59,6 +64,6 @@ pub fn init(pointer: anytype, comptime nextFn: NextFn(@TypeOf(pointer))) Self {
 // The following functions are what consumers of this interface will call.
 // We forward the function call here to the correct memory location of the actual implementation
 
-pub fn next(self: Self) ?[]u8 {
-    return self.vtable.next(self.ptr);
+pub fn next(self: Self, allocator: Allocator, writer: Writer) !?void {
+    return self.vtable.next(self.ptr, allocator, writer);
 }

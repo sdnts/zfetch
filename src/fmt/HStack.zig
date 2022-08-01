@@ -3,6 +3,7 @@ const FmtIterator = @import("./FmtIterator.zig");
 const NoopFmtIterator = @import("./NoopFmtIterator.zig");
 
 const Writer = std.fs.File.Writer;
+const ArrayList = std.ArrayList;
 
 const HStackConfig = struct {
     columns: u2,
@@ -47,11 +48,18 @@ pub fn HStack(comptime config: HStackConfig) type {
         }
 
         pub fn print(self: *Self, writer: Writer) !void {
+            var arena = std.heap.ArenaAllocator.init(std.heap.raw_c_allocator);
+            var allocator = arena.allocator();
+            defer arena.deinit();
+
+            var exhausted_iter_count: u8 = 0;
             while (true) {
                 for (self._body) |iter, i| {
-                    // Write whatever the iterator wants
-                    var str = iter.next();
-                    try writer.print("{s}", .{str});
+                    // Ask the iterator to write what it wants to the writer
+                    var iter_value = try iter.next(allocator, writer);
+                    if (iter_value == null) {
+                        exhausted_iter_count += 1;
+                    }
 
                     // Add spacing
                     if (i < self._body.len - 1) {
@@ -65,7 +73,9 @@ pub fn HStack(comptime config: HStackConfig) type {
                 // Automatic newline after every iteration
                 try writer.print("\n", .{});
 
-                break;
+                if (exhausted_iter_count == self._columns) {
+                    break;
+                }
             }
         }
     };
