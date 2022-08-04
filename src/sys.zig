@@ -222,15 +222,14 @@ pub const Sys = struct {
                 const ram = blk: {
                     if (is_macos) {
                         comptime var mib = [_]c_int{ c.CTL_HW, c.HW_MEMSIZE };
-                        const value = try darwin.sysctl(allocator, c_int, mib[0..]);
-                        break :blk @intCast(isize, value);
+                        const value = try darwin.sysctl(allocator, u64, mib[0..]);
+                        break :blk @intCast(u64, value);
                     }
 
                     @compileError("impl.ram is not implemented for this OS");
                 };
 
-                // try Decor.init().print(writer, "{d}GB", .{ram / (1024 * 1024 * 1024)});
-                try Decor.init().print(writer, "{d}GB", .{ram});
+                try Decor.init().print(writer, "{d}GB", .{ram / (1024 * 1024 * 1024)});
             },
             .Resolution => {
                 try Decor.init().bold().print(writer, "Resolution: ", .{});
