@@ -61,8 +61,10 @@ pub const Decor = struct {
         return self.backgroundANSI(code);
     }
 
-    pub fn print(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !void {
+    pub fn write(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !usize {
         // Useful reference: https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
+
+        var chars: usize = 0;
 
         // Reset styles before everything is written so you don't merge existing escape sequences into this one
         try writer.print("\x1B[0m", .{});
@@ -86,9 +88,16 @@ pub const Decor = struct {
 
         // Write actual content
         try writer.print(format, args);
+        chars += std.fmt.count(format, args);
 
         // Reset styles after everything is written so you don't mess up terminal output after
         try writer.print("\x1B[0m", .{});
+
+        return chars;
+    }
+
+    pub fn print(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !void {
+        _ = try self.write(writer, format, args);
     }
 
     pub fn println(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !void {

@@ -11,7 +11,8 @@ pub const ZFetchError =
     error{
         MissingEnvVar,
         UnexpectedEnvVar,
-        IOKitError
+        IOKitError,
+        InvalidUtf8,
     };
 
 // zig fmt: on

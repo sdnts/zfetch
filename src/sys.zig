@@ -20,10 +20,11 @@ const is_windows = builtin.target.os.tag == .windows;
 
 // zig fmt: off
 const SysKind = enum {
+    UserAtHostname,
+    Separator,
     Cores,
     CPU,
     GPU,
-    Hostname,
     Kernel,
     Machine,
     OS,
@@ -33,7 +34,7 @@ const SysKind = enum {
     Term,
     Threads,
     Uptime,
-    User,
+    Space,
     Colors1,
     Colors2
 };
@@ -41,7 +42,9 @@ const SysKind = enum {
 
 pub const Sys = struct {
     const Self = @This();
+    const max_lines_written = @typeInfo(SysKind).Enum.fields.len;
     lines_written: usize = 0,
+    last_line_len: usize = 0, // TODO: Actually calculate it at the end of every iteration
 
     pub fn init() Self {
         return Self{};
@@ -54,12 +57,38 @@ pub const Sys = struct {
     pub fn write(self: *Self, allocator: Allocator, writer: Writer) ZFetchError!?void {
         defer self.lines_written += 1;
 
-        const max_lines_written = @typeInfo(SysKind).Enum.fields.len;
-        if (self.lines_written == max_lines_written) {
+        if (self.lines_written >= Self.max_lines_written) {
             return null;
         }
 
         switch (@intToEnum(SysKind, self.lines_written)) {
+            .UserAtHostname => {
+                const user = blk: {
+                    if (is_macos or is_linux) {
+                        const value = std.os.getenv("USER");
+                        if (value == null) return error.MissingEnvVar;
+
+                        break :blk value.?;
+                    }
+
+                    @compileError("impl.user is not implemented for this OS");
+                };
+
+                const hostname = blk: {
+                    var buf: [std.os.HOST_NAME_MAX]u8 = undefined;
+                    var h = try std.os.gethostname(&buf);
+                    break :blk h;
+                };
+
+                self.last_line_len =
+                    try Decor.init().bold().write(writer, "{s}@{s}", .{ user, hostname });
+            },
+            .Separator => {
+                var i: usize = 0;
+                while (i < self.last_line_len) : (i += 1) {
+                    _ = try writer.write("-");
+                }
+            },
             .Cores => {
                 try Decor.init().bold().print(writer, "Cores: ", .{});
 
@@ -149,17 +178,6 @@ pub const Sys = struct {
                 } else {
                     try Decor.init().print(writer, "{s}", .{gpus.items[0]});
                 }
-            },
-            .Hostname => {
-                try Decor.init().bold().print(writer, "Hostname: ", .{});
-
-                const hostname = blk: {
-                    var buf: [std.os.HOST_NAME_MAX]u8 = undefined;
-                    _ = try std.os.gethostname(&buf);
-                    break :blk buf;
-                };
-
-                try Decor.init().print(writer, "{s}", .{hostname});
             },
             .Kernel => {
                 try Decor.init().bold().print(writer, "Kernel: ", .{});
@@ -340,33 +358,16 @@ pub const Sys = struct {
 
                 try Decor.init().print(writer, "{d}d {d}h {d}m {d}s", .{ uptime.days, uptime.hours, uptime.minutes, uptime.seconds });
             },
-            .User => {
-                try Decor.init().bold().print(writer, "User: ", .{});
-
-                const user = blk: {
-                    if (is_macos or is_linux) {
-                        const value = std.os.getenv("USER");
-                        if (value == null) return error.MissingEnvVar;
-
-                        break :blk value.?;
-                    }
-
-                    @compileError("impl.user is not implemented for this OS");
-                };
-
-                try Decor.init().print(writer, "{s}", .{user});
-            },
+            .Space => {},
             .Colors1 => {
-                const color_block = "   ";
                 var i: u8 = 0;
                 while (i < 8) : (i += 1)
-                    try Decor.init().bgANSI(i).print(writer, color_block, .{});
+                    try Decor.init().bgANSI(i).print(writer, "    ", .{});
             },
             .Colors2 => {
-                const color_block = "   ";
                 var i: u8 = 8;
                 while (i < 16) : (i += 1)
-                    try Decor.init().bgANSI(i).print(writer, color_block, .{});
+                    try Decor.init().bgANSI(i).print(writer, "    ", .{});
             },
         }
     }
