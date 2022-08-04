@@ -1,5 +1,5 @@
 const std = @import("std");
-const Lines = @import("./fmt/Lines.zig").Lines;
+const ZFetchError = @import("./errors.zig").ZFetchError;
 
 const SplitIterator = std.mem.SplitIterator(u8);
 const Allocator = std.mem.Allocator;
@@ -34,18 +34,14 @@ const apple = "";
 
 pub const Art = struct {
     const Self = @This();
-    pub const width: usize = 30;
-    iterator: SplitIterator = std.mem.split(u8, latte, "\n"),
+    width: usize = 30,
+    iterator: SplitIterator,
 
     pub fn init() Self {
-        return Self{};
+        return Self{ .width = 30, .iterator = std.mem.split(u8, latte, "\n") };
     }
 
-    pub fn lines(self: *Self) Lines {
-        return Lines{ .impl = @ptrCast(*anyopaque, self), .writeNextFn = writeNext };
-    }
-
-    pub fn writeNext(self_opaque: *anyopaque, _: Allocator, writer: Writer) !?void {
+    pub fn write(self_opaque: *anyopaque, writer: Writer) ZFetchError!?void {
         const self = @ptrCast(*Self, @alignCast(@alignOf(Self), self_opaque));
 
         if (self.iterator.next()) |l| {

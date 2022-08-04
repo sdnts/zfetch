@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const SysctlError = error{IllegalValueType} || std.mem.Allocator.Error;
+pub const SysctlError = error{IllegalValueType} || std.mem.Allocator.Error || std.os.SysCtlError;
 
 // System information is available through `sysctl`.
 // Running `sysctl -a` in your shell will list all information available to you. You can also use the `sysctl` syscall to query parts of this database.
@@ -37,7 +37,7 @@ const SysctlError = error{IllegalValueType} || std.mem.Allocator.Error;
 /// Calls sysctl and handles errors to a reasonable extent
 /// Since `sysctl` can return values as a usize or a string, this implementation handles both cases.
 /// When calling this function, you provide the expected value type as the `ValueType` comptime argument. For `ValueType`s that do not make sense in the context of `sysctlbyname`, an error is returned. Currently supported `ValueType`s are `[]u8` & `usize`
-pub fn sysctl(allocator: std.mem.Allocator, comptime ValueType: type, comptime mib: []c_int) !ValueType {
+pub fn sysctl(allocator: std.mem.Allocator, comptime ValueType: type, comptime mib: []c_int) SysctlError!ValueType {
     switch (@typeInfo(ValueType)) {
         .Pointer => |info| {
             // Special handling for "string" type values
@@ -82,7 +82,7 @@ pub fn sysctl(allocator: std.mem.Allocator, comptime ValueType: type, comptime m
 /// Calls sysctlbyname and handles errors to a reasonable extent
 /// Since `sysctlbyname` can return values as a usize or a string, this implementation handles both cases.
 /// When calling this function, you provide the expected value type as the `ValueType` comptime argument. For `ValueType`s that do not make sense in the context of `sysctlbyname`, an error is returned. Currently supported `ValueType`s are `[]u8` & `usize`
-pub fn sysctlbyname(allocator: std.mem.Allocator, comptime ValueType: type, comptime name: [*:0]const u8) !ValueType {
+pub fn sysctlbyname(allocator: std.mem.Allocator, comptime ValueType: type, comptime name: [*:0]const u8) SysctlError!ValueType {
     switch (@typeInfo(ValueType)) {
         .Pointer => |info| {
             // Special handling for "string" type values

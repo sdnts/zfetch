@@ -58,11 +58,14 @@ pub const Decor = struct {
     }
 
     pub fn bgANSI(self: *Self, code: u8) *Self {
-        return self.backgroundValue(code);
+        return self.backgroundANSI(code);
     }
 
     pub fn print(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !void {
         // Useful reference: https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
+
+        // Reset styles before everything is written so you don't merge existing escape sequences into this one
+        try writer.print("\x1B[0m", .{});
 
         // Write escape code for requested style
         if (self._style) |s| {
@@ -89,7 +92,6 @@ pub const Decor = struct {
     }
 
     pub fn println(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !void {
-        try self.print(writer, format, args);
-        try self.print(writer, "\n", .{});
+        self.print(writer, format ++ "\n", args);
     }
 };
