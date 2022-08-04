@@ -1,18 +1,40 @@
 const std = @import("std");
-const decor = @import("decor");
-const art = @import("./art.zig");
-const HStack = @import("./fmt/hstack.zig").HStack;
-const ArtFmtIterator = @import("./fmt/ArtFmtIterator.zig").ArtFmtIterator;
-const SysFmtIterator = @import("./fmt/SysFmtIterator.zig");
+const Lines = @import("./fmt/Lines.zig").Lines;
+const Art = @import("./art.zig").Art;
+const Sys = @import("./sys.zig").Sys;
 
 pub fn main() !void {
     var stdout = std.io.getStdOut().writer();
 
-    try HStack(.{ .columns = 2 })
-        .init()
-        .spacing(3)
-        .body(.{ ArtFmtIterator(art.latte).init().iter(), SysFmtIterator.init().iter() })
-        .print(stdout);
+    var arena = std.heap.ArenaAllocator.init(std.heap.raw_c_allocator);
+    var allocator = arena.allocator();
+    defer arena.deinit();
+
+    var art_lines = Art.init().lines();
+    var sys_lines = Sys.init().lines();
+    var exhausted: u8 = 0;
+
+    while (true) {
+        var art_line = try art_lines.writeNext(allocator, stdout);
+        if (art_line == null) {
+            exhausted += 1;
+        }
+
+        // Add spacing
+        _ = try stdout.write("   ");
+
+        var sys_line = try sys_lines.writeNext(allocator, stdout);
+        if (sys_line == null) {
+            exhausted += 1;
+        }
+
+        // Automatic newline after every iteration
+        try stdout.print("\n", .{});
+
+        if (exhausted == 2) {
+            break;
+        }
+    }
 
     // try Decorated.init().println(stdout, art.latte, .{});
     // try stdout.print("\n", .{});
