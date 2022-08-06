@@ -114,6 +114,7 @@ pub fn sysctlbyname(allocator: std.mem.Allocator, comptime ValueType: type, comp
                 },
             };
 
+            value.len = size;
             return value;
         },
         else => {
