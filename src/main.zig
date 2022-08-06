@@ -13,6 +13,7 @@ pub fn main() !void {
     var art = Art.init();
     var sys = Sys.init();
 
+    try stdout.print("\n", .{});
     while (true) {
         // Print one line of our "art"
         var art_bytes = (try art.write(stdout)) orelse 0;

@@ -32,7 +32,6 @@ const SysKind = enum {
     Resolution,
     Shell,
     Term,
-    Threads,
     Uptime,
     Space,
     Colors1,
@@ -306,21 +305,6 @@ pub const Sys = struct {
 
                 try Decor.init().print(writer, "{s}", .{term});
             },
-            .Threads => {
-                try Decor.init().bold().print(writer, "Threads: ", .{});
-
-                const threads = blk: {
-                    if (is_macos) {
-                        // This has a system-dependent MIB, so we use `sysctlbyname`
-                        const value = try darwin.sysctlbyname(allocator, c_int, "machdep.cpu.thread_count");
-                        break :blk @intCast(usize, value);
-                    }
-
-                    @compileError("impl.threads is not implemented for this OS");
-                };
-
-                try Decor.init().print(writer, "{d}", .{threads});
-            },
             .Uptime => {
                 try Decor.init().bold().print(writer, "Uptime: ", .{});
 
@@ -362,12 +346,12 @@ pub const Sys = struct {
             .Colors1 => {
                 var i: u8 = 0;
                 while (i < 8) : (i += 1)
-                    try Decor.init().bgANSI(i).print(writer, "    ", .{});
+                    try Decor.init().bgANSI(i).print(writer, "   ", .{});
             },
             .Colors2 => {
                 var i: u8 = 8;
                 while (i < 16) : (i += 1)
-                    try Decor.init().bgANSI(i).print(writer, "    ", .{});
+                    try Decor.init().bgANSI(i).print(writer, "   ", .{});
             },
         }
     }
