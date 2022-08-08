@@ -97,12 +97,10 @@ pub fn sysctlbyname(allocator: std.mem.Allocator, comptime ValueType: type, comp
             std.os.sysctlbynameZ(name, value.ptr, &size, null, 0) catch |err| switch (err) {
                 error.SystemResources => {
                     // Assumed buffer size was too small
-                    std.debug.print("Buffer too small {d}", .{size});
 
                     // According to docs, when the supplied buffer size is too small to fit the requested value, it is updated to the size of the actual value.
                     // But for whatever reason, that doesn't seem to be happening. So we make an additional sysctlbyname call with the buffer set to NULL. That does seem to update the `size` variable as advertised.
                     _ = try std.os.sysctlbynameZ(name, null, &size, null, 0);
-                    std.debug.print("Buffer adjusted {d}", .{size});
                     value = try allocator.realloc(value, size);
 
                     // We don't handle errors in this statement explicitly because the only errors that can occur are non-recoverable
