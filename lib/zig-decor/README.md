@@ -76,6 +76,9 @@ const Decor = struct {
     /// Initialize a new instance
     pub fn init() Self
 
+    /// Reset this instance
+    pub fn reset(self: *Self) *Self
+
     /// Set the style of your text. Currently supported styles are: .Bold
     pub fn style(self: *Self, s: ?Style) *Self
 

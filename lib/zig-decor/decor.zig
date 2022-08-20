@@ -19,6 +19,14 @@ pub const Decor = struct {
         return .{ ._style = null, ._fg = null, ._bg = null };
     }
 
+    /// Reset this instance
+    pub fn reset(self: *Self) *Self {
+        self._style = null;
+        self._fg = null;
+        self._bg = null;
+        return self;
+    }
+
     /// Set the style of your text. Currently supported styles are: .Bold
     pub fn style(self: *Self, s: ?Style) *Self {
         self._style = s;

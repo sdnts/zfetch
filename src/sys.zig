@@ -42,6 +42,7 @@ const SysKind = enum {
 pub const Sys = struct {
     const Self = @This();
     const max_lines_written = @typeInfo(SysKind).Enum.fields.len;
+    d: Decor = Decor.init(),
     lines_written: usize = 0,
     last_line_len: usize = 0, // TODO: Actually calculate it at the end of every iteration
 
@@ -80,7 +81,7 @@ pub const Sys = struct {
                 };
 
                 self.last_line_len =
-                    try Decor.init().bold().write(writer, "{s}@{s}", .{ user, hostname });
+                    try self.d.reset().bold().write(writer, "{s}@{s}", .{ user, hostname });
             },
             .Separator => {
                 var i: usize = 0;
@@ -89,7 +90,7 @@ pub const Sys = struct {
                 }
             },
             .Cores => {
-                try Decor.init().bold().print(writer, "Cores: ", .{});
+                try self.d.reset().bold().print(writer, "Cores: ", .{});
 
                 const cores = blk: {
                     if (is_macos) {
@@ -101,10 +102,10 @@ pub const Sys = struct {
                     @compileError("impl.cores is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{d}", .{cores});
+                try self.d.reset().print(writer, "{d}", .{cores});
             },
             .CPU => {
-                try Decor.init().bold().print(writer, "CPU: ", .{});
+                try self.d.reset().bold().print(writer, "CPU: ", .{});
 
                 const cpu = blk: {
                     if (is_macos) {
@@ -115,10 +116,10 @@ pub const Sys = struct {
                     @compileError("impl.cpu is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{s}", .{cpu});
+                try self.d.reset().print(writer, "{s}", .{cpu});
             },
             .GPU => {
-                try Decor.init().bold().print(writer, "GPU: ", .{});
+                try self.d.reset().bold().print(writer, "GPU: ", .{});
 
                 const gpus = blk: {
                     if (is_macos) {
@@ -173,13 +174,13 @@ pub const Sys = struct {
                 };
 
                 if (gpus.items.len == 0) {
-                    try Decor.init().print(writer, "Integrated", .{});
+                    try self.d.reset().print(writer, "Integrated", .{});
                 } else {
-                    try Decor.init().print(writer, "{s}", .{gpus.items[0]});
+                    try self.d.reset().print(writer, "{s}", .{gpus.items[0]});
                 }
             },
             .Kernel => {
-                try Decor.init().bold().print(writer, "Kernel: ", .{});
+                try self.d.reset().bold().print(writer, "Kernel: ", .{});
 
                 const kernel = blk: {
                     if (is_macos) {
@@ -192,10 +193,10 @@ pub const Sys = struct {
                     @compileError("impl.kernel is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{s}", .{kernel});
+                try self.d.reset().print(writer, "{s}", .{kernel});
             },
             .Machine => {
-                try Decor.init().bold().print(writer, "Machine: ", .{});
+                try self.d.reset().bold().print(writer, "Machine: ", .{});
 
                 const machine = blk: {
                     if (is_macos) {
@@ -206,10 +207,10 @@ pub const Sys = struct {
                     @compileError("impl.machine is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{s}", .{machine});
+                try self.d.reset().print(writer, "{s}", .{machine});
             },
             .OS => {
-                try Decor.init().bold().print(writer, "OS: ", .{});
+                try self.d.reset().bold().print(writer, "OS: ", .{});
 
                 const os = blk: {
                     if (is_macos) {
@@ -231,10 +232,10 @@ pub const Sys = struct {
                     @compileError("impl.os is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{s}", .{os});
+                try self.d.reset().print(writer, "{s}", .{os});
             },
             .RAM => {
-                try Decor.init().bold().print(writer, "RAM: ", .{});
+                try self.d.reset().bold().print(writer, "RAM: ", .{});
 
                 const ram = blk: {
                     if (is_macos) {
@@ -246,10 +247,10 @@ pub const Sys = struct {
                     @compileError("impl.ram is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{d}GB", .{ram / (1024 * 1024 * 1024)});
+                try self.d.reset().print(writer, "{d}GB", .{ram / (1024 * 1024 * 1024)});
             },
             .Resolution => {
-                try Decor.init().bold().print(writer, "Resolution: ", .{});
+                try self.d.reset().bold().print(writer, "Resolution: ", .{});
 
                 const resolution = blk: {
                     if (is_macos) {
@@ -267,10 +268,10 @@ pub const Sys = struct {
                     @compileError("impl.resolution is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{d}x{d}", .{ resolution.width, resolution.height });
+                try self.d.reset().print(writer, "{d}x{d}", .{ resolution.width, resolution.height });
             },
             .Shell => {
-                try Decor.init().bold().print(writer, "Shell: ", .{});
+                try self.d.reset().bold().print(writer, "Shell: ", .{});
 
                 const shell = blk: {
                     if (is_macos or is_linux) {
@@ -287,10 +288,10 @@ pub const Sys = struct {
                     @compileError("impl.shell is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{s}", .{shell});
+                try self.d.reset().print(writer, "{s}", .{shell});
             },
             .Term => {
-                try Decor.init().bold().print(writer, "Term: ", .{});
+                try self.d.reset().bold().print(writer, "Term: ", .{});
 
                 const term = blk: {
                     if (is_macos or is_linux) {
@@ -303,10 +304,10 @@ pub const Sys = struct {
                     @compileError("impl.term is not implemented for this OS");
                 };
 
-                try Decor.init().print(writer, "{s}", .{term});
+                try self.d.reset().print(writer, "{s}", .{term});
             },
             .Uptime => {
-                try Decor.init().bold().print(writer, "Uptime: ", .{});
+                try self.d.reset().bold().print(writer, "Uptime: ", .{});
 
                 const uptime = blk: {
                     const value_ms = ms: {
@@ -340,18 +341,18 @@ pub const Sys = struct {
                     };
                 };
 
-                try Decor.init().print(writer, "{d}d {d}h {d}m {d}s", .{ uptime.days, uptime.hours, uptime.minutes, uptime.seconds });
+                try self.d.reset().print(writer, "{d}d {d}h {d}m {d}s", .{ uptime.days, uptime.hours, uptime.minutes, uptime.seconds });
             },
             .Space => {},
             .Colors1 => {
                 var i: u8 = 0;
                 while (i < 8) : (i += 1)
-                    try Decor.init().bgANSI(i).print(writer, "   ", .{});
+                    try self.d.reset().bgANSI(i).print(writer, "   ", .{});
             },
             .Colors2 => {
                 var i: u8 = 8;
                 while (i < 16) : (i += 1)
-                    try Decor.init().bgANSI(i).print(writer, "   ", .{});
+                    try self.d.reset().bgANSI(i).print(writer, "   ", .{});
             },
         }
     }
