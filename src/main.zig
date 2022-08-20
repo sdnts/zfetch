@@ -2,6 +2,7 @@ const std = @import("std");
 const ZFetchError = @import("errors.zig").ZFetchError;
 const Art = @import("./art.zig").Art;
 const Sys = @import("./sys.zig").Sys;
+const latte = @import("./art.zig").latte;
 
 pub fn main() !void {
     var stdout = std.io.getStdOut().writer();
@@ -10,7 +11,7 @@ pub fn main() !void {
     var allocator = arena.allocator();
     defer arena.deinit();
 
-    var art = Art.init();
+    var art = Art.init(latte);
     var sys = Sys.init();
 
     try stdout.print("\n", .{});

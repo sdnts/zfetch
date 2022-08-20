@@ -7,7 +7,7 @@ const Writer = std.fs.File.Writer;
 
 // Unfortunately we cannot use Zig's multiline strings here because they do not support escape characters
 // If we wanted to render an ASCII image with the same color/style all over, we could use multiline strings along with fmt.Decorated
-const latte =
+pub const latte =
     "\n" ++
     "\n" ++
     "              \x1B[38;5;216;1m＿＿＿\n" ++
@@ -21,7 +21,7 @@ const latte =
     "      \x1B[38;5;216;1m| _\\＿_\\_)＿)\n" ++
     "       \x1B[38;5;216;1m\\_つ\n";
 
-const cloudflare =
+pub const cloudflare =
     "\n" ++
     "\n" ++
     "       \x1B[38;5;208;1m                          ///\n" ++
@@ -39,13 +39,11 @@ pub const Art = struct {
     pub const width = 28;
     iterator: SplitIterator,
 
-    pub fn init() Self {
-        return Self{ .iterator = std.mem.split(u8, latte, "\n") };
+    pub fn init(art: []const u8) Self {
+        return Self{ .iterator = std.mem.split(u8, art, "\n") };
     }
 
-    pub fn write(self_opaque: *anyopaque, writer: Writer) ZFetchError!?usize {
-        const self = @ptrCast(*Self, @alignCast(@alignOf(Self), self_opaque));
-
+    pub fn write(self: *Self, writer: Writer) ZFetchError!?usize {
         if (self.iterator.next()) |l| {
             try writer.print("{s}", .{l});
 
@@ -55,7 +53,7 @@ pub const Art = struct {
             // We'll greedily advance the iterator if we think we've hit a terminal escape sequence (counting it as 0 characters)
             // Any ASCII characters are counted as 1 character
             // Anything else is counted as 2 characters, because most terminals will render non-ASCII UTF8 as a glyph that is 2 ASCII characters wide
-            // This is mostly based on observation, and I may be wrong
+            // This is mostly based on observation, and I am probably wrong
             // TODO: Verify these claims
             var chars: usize = 0;
             var utf8 = (try std.unicode.Utf8View.init(l)).iterator();

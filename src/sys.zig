@@ -109,7 +109,7 @@ pub const Sys = struct {
                 const cpu = blk: {
                     if (is_macos) {
                         // This has a system-dependent MIB, so we use `sysctlbyname`
-                        break :blk darwin.sysctlbyname(allocator, []u8, "machdep.cpu.brand_string");
+                        break :blk try darwin.sysctlbyname(allocator, []u8, "machdep.cpu.brand_string");
                     }
 
                     @compileError("impl.cpu is not implemented for this OS");
@@ -186,7 +186,7 @@ pub const Sys = struct {
                         // This has a system-dependent MIB, so we use `sysctlbyname`
                         const name = try darwin.sysctlbyname(allocator, []u8, "kern.ostype");
                         const version = try darwin.sysctlbyname(allocator, []u8, "kern.osrelease");
-                        break :blk std.mem.concat(allocator, u8, &[_][]const u8{ name, " ", version });
+                        break :blk try std.mem.concat(allocator, u8, &[_][]const u8{ name, " ", version });
                     }
 
                     @compileError("impl.kernel is not implemented for this OS");
@@ -200,7 +200,7 @@ pub const Sys = struct {
                 const machine = blk: {
                     if (is_macos) {
                         comptime var mib = [_]c_int{ c.CTL_HW, c.HW_PRODUCT };
-                        break :blk darwin.sysctl(allocator, []u8, mib[0..]);
+                        break :blk try darwin.sysctl(allocator, []u8, mib[0..]);
                     }
 
                     @compileError("impl.machine is not implemented for this OS");
@@ -225,7 +225,7 @@ pub const Sys = struct {
 
                         // This has a system-dependent MIB, so we use `sysctlbyname`
                         var version = try darwin.sysctlbyname(allocator, []u8, "kern.osproductversion");
-                        break :blk std.mem.concat(allocator, u8, &[_][]const u8{ "macOS ", version });
+                        break :blk try std.mem.concat(allocator, u8, &[_][]const u8{ "macOS ", version });
                     }
 
                     @compileError("impl.os is not implemented for this OS");
