@@ -81,7 +81,7 @@ pub const Sys = struct {
                 };
 
                 self.last_line_len =
-                    try self.d.reset().bold().write(writer, "{s}@{s}", .{ user, hostname });
+                    try self.d.reset().bold().write(writer, "{s} @ {s}", .{ user, hostname });
             },
             .Separator => {
                 var i: usize = 0;
