@@ -3,7 +3,6 @@ const ZFetchError = @import("./errors.zig").ZFetchError;
 
 const SplitIterator = std.mem.SplitIterator(u8);
 const Allocator = std.mem.Allocator;
-const Writer = std.fs.File.Writer;
 
 // Unfortunately we cannot use Zig's multiline strings here because they do not support escape characters
 // If we wanted to render an ASCII image with the same color/style all over, we could use multiline strings along with fmt.Decorated
@@ -43,7 +42,7 @@ pub const Art = struct {
         return Self{ .iterator = std.mem.split(u8, art, "\n") };
     }
 
-    pub fn write(self: *Self, writer: Writer) ZFetchError!?usize {
+    pub fn write(self: *Self, writer: anytype) ZFetchError!?usize {
         if (self.iterator.next()) |l| {
             try writer.print("{s}", .{l});
 

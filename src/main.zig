@@ -5,7 +5,9 @@ const Sys = @import("./sys.zig").Sys;
 const latte = @import("./art.zig").latte;
 
 pub fn main() !void {
-    var stdout = std.io.getStdOut().writer();
+    var w = std.io.getStdOut().writer();
+    var bw = std.io.bufferedWriter(w);
+    var stdout = bw.writer();
 
     var arena = std.heap.ArenaAllocator.init(std.heap.raw_c_allocator);
     var allocator = arena.allocator();
@@ -30,6 +32,7 @@ pub fn main() !void {
         // Print sys info
         var sys_line = try sys.write(allocator, stdout);
         try stdout.print("\n", .{});
+        try bw.flush();
 
         if (art_bytes == Art.width and sys_line == null) {
             break;

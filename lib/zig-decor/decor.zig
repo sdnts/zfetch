@@ -1,7 +1,6 @@
 const std = @import("std");
 
 const Allocator = std.mem.Allocator;
-const Writer = std.fs.File.Writer;
 
 const Style = enum { Bold };
 const ColorName = enum(u8) { Black, Red, Green, Blue, Yellow, Magenta, Cyan, White };
@@ -81,7 +80,7 @@ pub const Decor = struct {
     }
 
     /// Write the configured text to a Writer (usually stdout). Returns the number of bytes written.
-    pub fn write(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !usize {
+    pub fn write(self: *Self, writer: anytype, comptime format: []const u8, args: anytype) !usize {
         // Useful reference: https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
 
         var chars: usize = 0;
@@ -117,12 +116,12 @@ pub const Decor = struct {
     }
 
     /// Write the configured text to a Writer (usually stdout). Useful as an alternative to `write` when you do not care about the number of bytes written.
-    pub fn print(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !void {
+    pub fn print(self: *Self, writer: anytype, comptime format: []const u8, args: anytype) !void {
         _ = try self.write(writer, format, args);
     }
 
     /// Write the configured text to a Writer (usually stdout), and add a new line. Useful shorthand.
-    pub fn println(self: *Self, writer: Writer, comptime format: []const u8, args: anytype) !void {
+    pub fn println(self: *Self, writer: anytype, comptime format: []const u8, args: anytype) !void {
         try self.print(writer, format ++ "\n", args);
     }
 };

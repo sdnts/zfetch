@@ -12,7 +12,6 @@ pub const darwin = @import("./sys/darwin.zig");
 
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
-const Writer = std.fs.File.Writer;
 
 const is_macos = builtin.target.os.tag == .macos;
 const is_linux = builtin.target.os.tag == .linux;
@@ -54,7 +53,7 @@ pub const Sys = struct {
     /// so you'll regularly see branches based on supported operating systems. I'm leaving a few general notes here that might be useful if you're tweaking this,
     /// although to be honest I'm leaving these for myself.
     /// The general rule behind implementations is to favor speed over anything else (even correctness at times, because it really isn't as important in this case)
-    pub fn write(self: *Self, allocator: Allocator, writer: Writer) ZFetchError!?void {
+    pub fn write(self: *Self, allocator: Allocator, writer: anytype) ZFetchError!?void {
         defer self.lines_written += 1;
 
         if (self.lines_written >= Self.max_lines_written) {
