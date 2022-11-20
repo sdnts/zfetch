@@ -2,7 +2,6 @@ const std = @import("std");
 const sys = @import("sys.zig");
 
 // zig fmt: off
-
 pub const ZFetchError =
     std.mem.Allocator.Error ||
     std.os.WriteError ||
@@ -14,5 +13,4 @@ pub const ZFetchError =
         IOKitError,
         InvalidUtf8,
     };
-
 // zig fmt: on

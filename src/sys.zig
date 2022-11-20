@@ -43,16 +43,22 @@ pub const Sys = struct {
     const max_lines_written = @typeInfo(SysKind).Enum.fields.len;
     d: Decor = Decor.init(),
     lines_written: usize = 0,
-    last_line_len: usize = 0, // TODO: Actually calculate it at the end of every iteration
+    separator_length: usize = 0,
 
     pub fn init() Self {
         return Self{};
     }
 
-    /// Information you can show is implemented on a per-platform basis here. There is unfortunately no cross-platform way to get system information,
-    /// so you'll regularly see branches based on supported operating systems. I'm leaving a few general notes here that might be useful if you're tweaking this,
-    /// although to be honest I'm leaving these for myself.
-    /// The general rule behind implementations is to favor speed over anything else (even correctness at times, because it really isn't as important in this case)
+    // Information you can show is implemented on a per-platform basis here. There
+    // is unfortunately no cross-platform way to get system information, so you'll
+    // regularly see branches based on supported operating systems. I'm leaving
+    // a few general notes here that might be useful if you're tweaking this,
+    // although to be honest I'm leaving these for myself.
+    // Every time this function is called, it writes one line to the given writer.
+    // The general rule behind implementations is to favor speed over anything
+    // else (even correctness at times, because it really isn't as important in
+    // this case). Would you rather have a fast shell startup, or one that miscalculates
+    // the RAM you have?
     pub fn write(self: *Self, allocator: Allocator, writer: anytype) ZFetchError!?void {
         defer self.lines_written += 1;
 
@@ -60,6 +66,7 @@ pub const Sys = struct {
             return null;
         }
 
+        // The order in which enums are defined is preserved
         switch (@intToEnum(SysKind, self.lines_written)) {
             .UserAtHostname => {
                 const user = blk: {
@@ -79,12 +86,13 @@ pub const Sys = struct {
                     break :blk h;
                 };
 
-                self.last_line_len =
+                // Kinda lazy to do it this way but why complicate things
+                self.separator_length =
                     try self.d.reset().bold().write(writer, "{s} @ {s}", .{ user, hostname });
             },
             .Separator => {
                 var i: usize = 0;
-                while (i < self.last_line_len) : (i += 1) {
+                while (i < self.separator_length) : (i += 1) {
                     _ = try writer.write("-");
                 }
             },
@@ -214,14 +222,21 @@ pub const Sys = struct {
                 const os = blk: {
                     if (is_macos) {
                         // COMPATIBILITY:
-                        // The following only works for macOS 10.13.4 (High Sierra) and up.
-                        // The sysctl entry to get the macOS version is `kern.osproductversion`, which has two issues:
-                        //   1. kern.osproductversion is only available 10.13.4 High Sierra and later
-                        //   2. ker.osproductversion, when used from a binary built against < SDK 11.0, returns 10.16 and masks Big Sur 11.x version
+                        // The following only works for macOS 10.13.4 (High Sierra)
+                        // and up.
+                        // The sysctl entry to get the macOS version is `kern.osproductversion`,
+                        // which has two issues:
+                        //   1. kern.osproductversion is only available 10.13.4
+                        //      High Sierra and later
+                        //   2. kern.osproductversion, when used from a binary built
+                        //      against < SDK 11.0, returns 10.16 and masks Big Sur
+                        //      11.x version
                         //
-                        // I think this accuracy to speed tradeoff is worth it though because of High Sierra and SDK 11.0's age.
+                        // I think this accuracy to speed tradeoff is worth it though
+                        // because of High Sierra and SDK 11.0's age.
                         //
-                        // Zig's builtin `std.darwin.detect` parses the `/System/Library/CoreServices/SystemVersion.plist` file to get around this, which I'd also like to avoid.
+                        // Zig's builtin `std.darwin.detect` parses the `/System/Library/CoreServices/SystemVersion.plist`
+                        // file to get around this, which I'd also like to avoid.
 
                         // This has a system-dependent MIB, so we use `sysctlbyname`
                         var version = try darwin.sysctlbyname(allocator, []u8, "kern.osproductversion");

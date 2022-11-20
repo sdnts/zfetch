@@ -2,7 +2,7 @@ const std = @import("std");
 const ZFetchError = @import("errors.zig").ZFetchError;
 const Art = @import("./art.zig").Art;
 const Sys = @import("./sys.zig").Sys;
-const latte = @import("./art.zig").latte;
+const active_ascii_art = @import("./art.zig").active_ascii_art;
 
 pub fn main() !void {
     var w = std.io.getStdOut().writer();
@@ -13,8 +13,12 @@ pub fn main() !void {
     var allocator = arena.allocator();
     defer arena.deinit();
 
-    var art = Art.init(latte);
     var sys = Sys.init();
+    var art = Art.init(active_ascii_art);
+    // Okay so this width is notoriously hard to calculate programmatically (at
+    // comptime) because unicode. So I'm just going to trial-and-error a good value
+    // so that the sys info lines up neatly. More details in the `Art.write` function.
+    const estimated_art_width = 28;
 
     try stdout.print("\n", .{});
     while (true) {
@@ -22,7 +26,7 @@ pub fn main() !void {
         var art_bytes = (try art.write(stdout)) orelse 0;
 
         // Add appropriate spacing to make all art lines the same width
-        while (art_bytes < Art.width) : (art_bytes += 1) {
+        while (art_bytes < estimated_art_width) : (art_bytes += 1) {
             _ = try stdout.write(" ");
         }
 
@@ -32,10 +36,11 @@ pub fn main() !void {
         // Print sys info
         var sys_line = try sys.write(allocator, stdout);
         try stdout.print("\n", .{});
-        try bw.flush();
 
-        if (art_bytes == Art.width and sys_line == null) {
+        if (art_bytes == estimated_art_width and sys_line == null) {
             break;
         }
     }
+
+    try bw.flush();
 }
