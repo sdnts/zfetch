@@ -67,6 +67,7 @@ pub fn sysctl(allocator: std.mem.Allocator, comptime ValueType: type, comptime m
                 },
             };
 
+            value.len = size;
             return value;
         },
         else => {
